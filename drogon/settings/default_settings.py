@@ -2,6 +2,7 @@ import os
 
 BASE_DIR = os.getcwd()
 PROXY_PATH = os.path.join(BASE_DIR, 'proxies.txt')
+MAX_REQUEST_RETRY = 3
 
 REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
