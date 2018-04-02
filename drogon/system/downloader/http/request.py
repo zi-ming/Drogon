@@ -1,6 +1,6 @@
 
 class Request(object):
-    def __init__(self, url, form_data=None, body=None, headers=None, method='GET',
+    def __init__(self, url, data=None, headers=None, method='GET',
                  cookies=None, meta=None, callback=None, errback=None, priority=0,
                  allow_redirects=False, timeout=60, duplicate_remove=True, ignore_error=False):
         """
@@ -24,7 +24,7 @@ class Request(object):
         self.form_data = form_data
         self.body = body
         self.headers = headers
-        self.method = method
+        self.method = method.upper()
         self.cookies = cookies or dict()
         self.meta = meta or dict()
         self.callback = callback
