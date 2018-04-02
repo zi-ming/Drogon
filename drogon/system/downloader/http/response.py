@@ -2,6 +2,11 @@ from requests.models import Response as Response_obj
 
 class Response(object):
     def __init__(self, response, request):
+        """
+        Response module
+        :param response: 请求返回的requests.models对象
+        :param request: Request对象
+        """
         self.response = response
         self.request = request
 
