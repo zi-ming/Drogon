@@ -6,8 +6,7 @@ class Request(object):
         """
         请求对象
         :param url: 请求url
-        :param form_data:   请求参数，POST情况下才用到，字典类型
-        :param body: 请求参数，POST情况下才用到，字符串类型
+        :param data:   请求参数，POST情况下才用到，字典类型
         :param headers: 请求头信息
         :param method: 请求方法
         :param cookies: cookies值
