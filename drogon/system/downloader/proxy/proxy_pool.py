@@ -9,11 +9,15 @@
 """
 
 import sys
+import os
+from queue import Queue
 from drogon.settings.default_settings import PROXY_PATH
 
 class ProxyPool(object):
     def __init__(self):
         self._queue = Queue()
+        if not os.path.exists(PROXY_PATH):
+            return
         for line in open(PROXY_PATH):
             info = line.split(':')
             if len(info) == 2:
@@ -30,6 +34,8 @@ class ProxyPool(object):
         return len(self._queue)
 
     def get(self):
+        if not len(self):
+            return None
         proxy = self._queue.get()
         self._queue.put(proxy)
         return proxy
