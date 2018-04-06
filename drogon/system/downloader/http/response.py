@@ -13,11 +13,11 @@ class Response(object):
     def __str__(self):
         if not self.response:
             return "<Response failed:[%s] [%s]>"%(
-                self.response.status.code, self.response.url)
+                self.response.status_code, self.response.url)
         if isinstance(self.response, Response_obj):
             return "<Response [%s] [%s] [%.2f KB]>"%(
                 self.response.status_code, self.response.url, len(self.response.content) / 1000.0)
         else:
             return "<Response unknown:[%s] [%s]>"%(
-                self.response.status.code, self.response.url)
+                self.response.status_code, self.response.url)
     __repr__ = __str__
