@@ -7,6 +7,9 @@ MAX_REQUEST_RETRY = 3
 REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
 
+REQUEST_BATCH_SIZE = 10
+ENGINE_SCHEDULER_SLEEP_TIME = 0.001
+
 DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
