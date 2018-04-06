@@ -26,8 +26,12 @@ def request_to_dict(request, spider):
     return d
 
 def request_from_dict(d, spider):
-    cb = _get_method(spider, d['callback'])
-    eb = _get_method(spider, d['errback'])
+    cb = d['callback']
+    if cb:
+        cb = _get_method(spider, cb)
+    eb = d['errback']
+    if eb:
+        eb = _get_method(spider, eb)
     return Request(
         url=d['url'],
         data=d['data'],
