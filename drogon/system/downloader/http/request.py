@@ -2,7 +2,7 @@
 class Request(object):
     def __init__(self, url, data=None, headers=None, method='GET',
                  cookies=None, meta=None, callback=None, errback=None, priority=0,
-                 allow_redirects=False, timeout=60, duplicate_remove=True, ignore_error=False,
+                 allow_redirects=False, timeout=60, duplicate_remove=False, ignore_error=False,
                  use_proxy=False):
         """
         请求对象
