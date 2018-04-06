@@ -2,8 +2,7 @@
 class Request(object):
     def __init__(self, url, data=None, headers=None, method='GET',
                  cookies=None, meta=None, callback=None, errback=None, priority=0,
-                 allow_redirects=False, timeout=60, duplicate_remove=False, ignore_error=False,
-                 use_proxy=False):
+                 allow_redirects=False, timeout=60, duplicate_remove=False, use_proxy=False):
         """
         请求对象
         :param url: 请求url
@@ -18,7 +17,6 @@ class Request(object):
         :param allow_redirects: 是否运行跳转重定向
         :param timeout: 请求超时时间
         :param duplicate_remove: 是否去重
-        :param ignore_error: 是否无视错误（无论请求成功还是失败都回调callback，该值为Ture，则无视errback）
         """
         self.url = url
         self.data = data
@@ -32,10 +30,7 @@ class Request(object):
         self.allow_redirects = allow_redirects
         self.timeout = timeout
         self.duplicate_remove = duplicate_remove
-        self.ignore_error = ignore_error
         self.use_proxy = use_proxy
-        if self.ignore_error:
-            self.errback = self.callback
 
     def __str__(self):
         return "<Request [%s] [%s]>"%(self.method, self.url)
