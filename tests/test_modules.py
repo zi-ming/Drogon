@@ -3,6 +3,7 @@ from drogon.system.downloader.http.request import Request
 from drogon.system.downloader.requests_downloader import RequestsDownloader
 from drogon.system.scheduler.queue import PriorityQueue
 from drogon.system.engine.engine_core import EngineCore
+from drogon.system.spider.base_spider import BaseSpider
 
 # class TestDownloader(unittest.TestCase):
 #     def test_request_downloader(self):
@@ -17,20 +18,6 @@ from drogon.system.engine.engine_core import EngineCore
 #                 print('download fail')
 #             else:
 #                 print(resp)
-
-# class BaiduSpider(object):
-#     spider_id = 'baidu_id'
-#     spider_name = 'baidu_name'
-#
-#     def deom_request(self):
-#         return Request(
-#             url='http://www.baidu.com',
-#             callback=self.demo_func,
-#             errback=self.demo_func
-#         )
-#
-#     def demo_func(self):
-#         print('pass test')
 #
 # class TestQueue(unittest.TestCase):
 #     baidu = BaiduSpider()
@@ -45,11 +32,26 @@ from drogon.system.engine.engine_core import EngineCore
 
 
 class TestEngine(object):
-    engine = EngineCore()
+    class BaiduSpider(BaseSpider):
+        spider_id = 'baidu_id'
+        spider_name = 'baidu_name'
+        start_requests = [Request(url='http://www.jb51.net')]
+
+        def parse(self, response):
+            yield Request(
+                url='http://www.sogou.com',
+                callback=self.parse_page,
+                errback=self.parse_retry
+            )
+
+        def parse_retry(self, response):
+            print('retry....')
+
+        def parse_page(self, response):
+            print('goodbye')
+
+    engine = EngineCore(spider=BaiduSpider())
     engine.start()
-    # def test_start(self):
-    #     engine = EngineCore()
-    #     engine.start()
 
 if __name__ == '__main__':
     unittest.main()
