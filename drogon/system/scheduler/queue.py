@@ -13,7 +13,7 @@ class Base(object):
         self._filter = BloomFilter(key=self.task_id)
         self._server = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
 
-    def _get_pipeline(self):
+    def get_pipeline(self):
         return self._server.pipeline()
 
     def push(self, obj):
