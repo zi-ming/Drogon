@@ -2,13 +2,15 @@ import os
 
 BASE_DIR = os.getcwd()
 PROXY_PATH = os.path.join(BASE_DIR, 'proxies.txt')
-MAX_REQUEST_RETRY = 3
+RESULT_PATH = os.path.join(os.path.dirname(BASE_DIR), os.path.join('output', 'result'))
+
 
 REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
 
+MAX_REQUEST_RETRY = 3
 REQUEST_BATCH_SIZE = 10
-SPIDER_STOP_TIME = 120
+SPIDER_STOP_TIME = 10
 IDLE_TIME = 5
 
 LEGAL_STATUS_CODE = {200,}
