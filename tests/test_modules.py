@@ -4,6 +4,10 @@ from drogon.system.downloader.requests_downloader import RequestsDownloader
 from drogon.system.scheduler.queue import PriorityQueue
 from drogon.system.engine.engine_core import EngineCore
 from drogon.system.spider.base_spider import BaseSpider
+from drogon.system.pipeline.base_pipeline import BasePipeline
+from drogon.system.pipeline.save_resp_pipeline import SaveRespPipeline
+from drogon.settings.default_settings import *
+from drogon.system.result import Result
 
 # class TestDownloader(unittest.TestCase):
 #     def test_request_downloader(self):
@@ -38,11 +42,15 @@ class TestEngine(object):
         start_requests = [Request(url='http://www.jb51.net')]
 
         def parse(self, response):
-            yield Request(
-                url='http://www.sogou.com',
-                callback=self.parse_page,
-                errback=self.parse_retry
-            )
+            # result = Result(response, self)
+            # print(result.text)
+            return response
+            # print('parse function')
+            # yield Request(
+            #     url='http://www.sogou.com',
+            #     callback=self.parse_page,
+            #     errback=self.parse_retry
+            # )
 
         def parse_retry(self, response):
             print('retry....')
@@ -50,7 +58,7 @@ class TestEngine(object):
         def parse_page(self, response):
             print('goodbye')
 
-    engine = EngineCore(spider=BaiduSpider())
+    engine = EngineCore(spider=BaiduSpider()).set_pipeline(SaveRespPipeline())
     engine.start()
 
 if __name__ == '__main__':
