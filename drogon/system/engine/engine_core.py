@@ -15,14 +15,14 @@ from drogon.settings.default_settings import LEGAL_STATUS_CODE
 
 
 class EngineCore(object):
-    def __init__(self, spider=None, downloader=None, pipelines=None,
+    def __init__(self, spider=None, downloader=None, pipeline_dict=None,
                  scheduler=None, batch_size=1, time_sleep=None):
         self._spider = spider
         self._spider_name = spider and spider.spider_name or None
         self._spider_id = spider and spider.spider_id or None
         self._host_regex = spider and self._get_host_regex() or None
         self._spider_status = 'stopped'
-        self._pipelines = pipelines or dict()
+        self._pipelines = pipeline_dict or dict()
         self._batch_size = batch_size - 1 or REQUEST_BATCH_SIZE
         self._downloader = downloader or RequestsDownloader
         if not downloader:
@@ -117,15 +117,15 @@ class EngineCore(object):
                         self._request_queue.push_pipe(item, scheduler_pipe)
                         logger.info('start request: %s' % (item))
                     else:
-                        for pipeline in self._pipelines.itervalues():
-                            pipeline.parse(item)
+                        for pipeline in self._pipelines.values():
+                            pipeline.parse(item, self._spider)
                 scheduler_pipe.execute()
             elif isinstance(callback, Request):
                 self._request_queue.push(callback)
                 logger.info('start request: %s' % (callback))
             else:
                 for pipeline in self._pipelines.values():
-                    pipeline.parse(callback)
+                    pipeline.parse(callback, self._spider)
 
     def _get_host_regex(self):
         allowed_domains = getattr(self._spider, 'allowed_domains', None)
