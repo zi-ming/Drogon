@@ -16,4 +16,4 @@ class BaseSpider(object):
     start_url_file_path = None
 
     def parse(self, response):
-        print(response)
+        raise NotImplementedError
