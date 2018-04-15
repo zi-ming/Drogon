@@ -1,8 +1,17 @@
+"""
+    bloom_filer.py
+    ~~~~~~~
+    the main role is duplicate remove
+    :author: Max
+    :copyright: (c) 2018
+    :date created: 2018-04-15
+    :python version: 3.6
+"""
 
 import sys
 import redis
 from hashlib import md5
-from drogon.settings.default_settings import REDIS_HOST,REDIS_PORT
+from drogon.settings import REDIS_HOST,REDIS_PORT
 
 class SimpleHash(object):
     def __init__(self, cap, seed):
