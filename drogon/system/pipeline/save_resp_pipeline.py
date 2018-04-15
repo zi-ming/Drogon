@@ -1,3 +1,13 @@
+"""
+    save_resp_pipeline.py
+    ~~~~~~~
+    save results to local
+    :author: Max
+    :copyright: (c) 2018
+    :date created: 2018-04-15
+    :python version: 3.6
+"""
+
 
 import os
 
@@ -6,8 +16,9 @@ from drogon.system.result import Result
 
 class SaveRespPipeline(BasePipeline):
     def parse(self, response, spider):
-        result = Result(response, spider)
-        self.parse_result(result, spider)
+        if response:
+            result = Result(response, spider)
+            self.parse_result(result, spider)
 
     def parse_result(self, result, spider):
         path = os.path.dirname(result.path)
