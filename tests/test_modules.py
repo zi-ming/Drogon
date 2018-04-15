@@ -1,12 +1,11 @@
 import unittest2 as unittest
-from drogon.system.downloader.http.request import Request
 from drogon.system.downloader.requests_downloader import RequestsDownloader
-from drogon.system.scheduler.queue import PriorityQueue
+from drogon.system.scheduler.queue import PriorityRequestQueue
 from drogon.system.engine.engine_core import EngineCore
 from drogon.system.spider.base_spider import BaseSpider
 from drogon.system.pipeline.base_pipeline import BasePipeline
 from drogon.system.pipeline.save_resp_pipeline import SaveRespPipeline
-from drogon.settings.default_settings import *
+from drogon.settings import *
 from drogon.system.result import Result
 
 # class TestDownloader(unittest.TestCase):
@@ -34,31 +33,35 @@ from drogon.system.result import Result
 #     req.callback()
 #     req.errback()
 
+class BaiduSpider(BaseSpider):
+    spider_id = 'baidu_id'
+
+    MAX_RETRY_TIMES = 2
+
+    def __init__(self):
+        super(BaiduSpider, self).__init__(self.spider_id)
+        self.logger.info('INIT')
+        self.start_requests = [self.fetch(url='http://www.baidu.com', meta={'use_proxy': True})]
+
+    def on_start(self, data):
+        return self.fetch(url=data, meta={'use_proxy': True})
+
+    def parse(self, response):
+        if not response.response or response.response.status_code!=200:
+            yield self.retry_get(response)
+        else:
+            self.logger.info('[SUCCESS] {}'.format(response.request.url))
+            yield response
+
+
+    def parse_retry(self, response):
+        print('retry....')
+
+    def parse_page(self, response):
+        print('goodbye')
 
 class TestEngine(object):
-    class BaiduSpider(BaseSpider):
-        spider_id = 'baidu_id'
-        spider_name = 'baidu_name'
-        start_requests = [Request(url='http://www.jb51.net')]
-
-        def parse(self, response):
-            # result = Result(response, self)
-            # print(result.text)
-            return response
-            # print('parse function')
-            # yield Request(
-            #     url='http://www.sogou.com',
-            #     callback=self.parse_page,
-            #     errback=self.parse_retry
-            # )
-
-        def parse_retry(self, response):
-            print('retry....')
-
-        def parse_page(self, response):
-            print('goodbye')
-
-    engine = EngineCore(spider=BaiduSpider()).set_pipeline(SaveRespPipeline())
+    engine = EngineCore(spider=BaiduSpider())
     engine.start()
 
 if __name__ == '__main__':
