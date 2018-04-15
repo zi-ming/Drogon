@@ -1,44 +1,68 @@
+"""
+    engine_core.py
+    ~~~~~~~
+    Responsible for the scheduling of each module
+    :author: Max
+    :copyright: (c) 2018
+    :date created: 2018-04-15
+    :python version: 3.6
+"""
+
 import re
 import time
 import uuid
 import traceback
 import types
 
-from drogon.settings.default_settings import IDLE_TIME, SPIDER_STOP_TIME
-from drogon.settings.default_settings import REQUEST_BATCH_SIZE
-from drogon.system.downloader.requests_downloader import RequestsDownloader
-from drogon.system.scheduler.queue import PriorityQueue
-from drogon.system.utils import logger
-from drogon.system.utils.engine import read_start_urls_from_file
-from drogon.system.downloader.http.request import Request
-from drogon.settings.default_settings import LEGAL_STATUS_CODE
+from drogon.settings import IDLE_TIME
+from drogon.settings import SPIDER_STOP_TIME
+from drogon.settings import REQUEST_BATCH_SIZE
+from drogon.settings import LEGAL_STATUS_CODE
 
+from drogon.system.downloader.requests_downloader import RequestsDownloader as Downloader
+from drogon.system.downloader.modules.request import Request
+from drogon.system.downloader.proxy import handle_request_proxy
+
+from drogon.system.logger import sys_logger as logger
+
+from drogon.system.scheduler.queue import PriorityRequestQueue as Scheduler
+from drogon.system.scheduler.queue import SpiderStats
+from drogon.system.scheduler.queue import CrawlStatus
+from drogon.system.scheduler.queue import ProxyQueue
+
+from drogon.system.pipeline.base_pipeline import BasePipeline
+from drogon.system.pipeline.save_resp_pipeline import SaveRespPipeline
 
 class EngineCore(object):
-    def __init__(self, spider=None, downloader=None, pipeline_dict=None,
-                 scheduler=None, batch_size=1, time_sleep=None):
+    def __init__(self, spider=None, downloader=None, pipeline=None,
+                 scheduler=None, batch_size=1):
         self._spider = spider
-        self._spider_name = spider and spider.spider_name or None
         self._spider_id = spider and spider.spider_id or None
-        self._host_regex = spider and self._get_host_regex() or None
-        self._spider_status = 'stopped'
-        self._pipelines = pipeline_dict or dict()
         self._batch_size = batch_size - 1 or REQUEST_BATCH_SIZE
-        self._downloader = downloader or RequestsDownloader
+        self._pipelines = dict()
+        if not pipeline:
+            self.set_pipeline(SaveRespPipeline())
+        elif isinstance(pipeline, dict):
+            self._pipelines = pipeline
+        elif isinstance(pipeline, BasePipeline):
+            self.set_pipeline(pipeline)
         if not downloader:
-            self._downloader = RequestsDownloader()
+            self._downloader = Downloader()
         else:
             self._downloader = downloader()
+        if not scheduler:
+            self._scheduler = Scheduler
+        else:
+            self._scheduler = scheduler
+        SpiderStats.set_stop_stats(self._spider_id)
 
     def set_spider(self, spider):
         self._spider = spider
-        self._spider_name = spider.spider_name
         self._spider_id = spider.spider_id
-        self._host_regex = self._get_host_regex()
         return self
 
     def set_scheduler(self, scheduler):
-        self._request_queue = scheduler
+        self._scheduler = scheduler
         return self
 
     def set_downloader(self, downloader):
@@ -53,37 +77,44 @@ class EngineCore(object):
 
     def start(self):
         try:
-            logger.info("START '%s' SUCCESS"%(self._spider_id))
-            self._spider_status = 'started'
-            self._request_queue = PriorityQueue(self._spider)
+            logger.info("[{}] STARTED".format(self._spider_id))
+            SpiderStats.set_started_stats(self._spider_id)
+            self._request_queue = self._scheduler(self._spider)
             for request in self._spider.start_requests or \
-                    self.handle_file_start_urls() or []:
+                    self._spider.on_message() or []:
+                if not request or not isinstance(request, Request):
+                    continue
                 self._request_queue.push(request)
-                logger.info('start request: %s'%(request))
-
+                logger.info('[{}] start request: {}'.format(self._spider_id, request))
+                if not SpiderStats.is_started_stats(self._spider_id):
+                    break
             idle_count = 0
             for batch in self._batch_requests():
                 if batch:
                     self._crawl(batch)
-                    logger.info('handle response')
                     idle_count = 0
                 else:
                     idle_count += 1
                     if idle_count > (SPIDER_STOP_TIME*300):
-                        logger.info('SPIDER FINISH')
                         break
                     elif idle_count % (IDLE_TIME*300) == 0:
-                        logger.debug('waiting for request...')
+                        logger.debug('[{}] crawl page count: {}'.format(
+                            self._spider_id, CrawlStatus.get_status(self._spider_id)))
                     time.sleep(0.001)
-            self._spider_status = 'stopped'
-            logger.info('STOP %s SUCCESS'%(self._spider_id))
+            SpiderStats.set_stop_stats(self._spider_id)
+            logger.info('[{}] FINISH'.format(self._spider_id))
         except:
-            logger.error('EXCEPTION[%s]: %s'%(self._spider_id, traceback.format_exc()))
+            logger.error('[{}] EXCEPTION: {}'.format(self._spider_id, traceback.format_exc()))
+        finally:
+            self.clean()
 
     def _batch_requests(self):
-        batch = []
-        count = 0
+        batch, count = [], 0
         while True:
+            if not SpiderStats.is_started_stats(self._spider_id):
+                time.sleep(2)
+                yield []
+                continue
             count += 1
             if count > REQUEST_BATCH_SIZE:
                 batch.sort(key=lambda x:x.priority, reverse=True)
@@ -98,11 +129,6 @@ class EngineCore(object):
                     request.errback = request.callback
                 batch.append(request)
 
-    def handle_file_start_urls(self):
-        for url in read_start_urls_from_file(self._spider):
-            req = Request(url=url, **self._spider.spider_settings)
-            yield req
-
     def _crawl(self, batch):
         responses = self._downloader.download(batch)
         for response in responses:
@@ -115,22 +141,19 @@ class EngineCore(object):
                 for item in callback:
                     if isinstance(item, Request):
                         self._request_queue.push_pipe(item, scheduler_pipe)
-                        logger.info('start request: %s' % (item))
+                        logger.info('[{}] start request: {}'.format(self._spider_id, item))
                     else:
                         for pipeline in self._pipelines.values():
                             pipeline.parse(item, self._spider)
                 scheduler_pipe.execute()
             elif isinstance(callback, Request):
                 self._request_queue.push(callback)
-                logger.info('start request: %s' % (callback))
+                logger.info('[{}] start request: {}'.format(self._spider_id, callback))
             else:
                 for pipeline in self._pipelines.values():
                     pipeline.parse(callback, self._spider)
 
-    def _get_host_regex(self):
-        allowed_domains = getattr(self._spider, 'allowed_domains', None)
-        if not allowed_domains:
-            return re.compile('')
-        regex = r'^(.*\.)?(%s)(\..*)?$'%(
-            '|'.join([re.escape(x) for x in allowed_domains]))
-        return re.compile(regex)
+    def clean(self):
+        CrawlStatus.clean(self._spider_id)
+        SpiderStats.clean(self._spider_id)
+        ProxyQueue.clean()
