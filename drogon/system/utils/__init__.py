@@ -23,7 +23,7 @@ def to_unicode(text, encoding=None, errors='strict'):
 def read_line_from_start_url_files(spider_id):
     path = os.path.join(START_URLS_PATH, spider_id)
     if not os.path.exists(path):
-        return None
+        return
     for _, _, files in os.walk(path):
         files = sorted(files)
         for f in files:

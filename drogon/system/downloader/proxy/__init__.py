@@ -12,8 +12,6 @@ import time
 import json
 import traceback
 
-from json.decoder import JSONDecodeError
-
 from drogon.system.utils import to_unicode
 from drogon.settings import PROXY_POOL_API
 from drogon.system.logger import sys_logger as logger
@@ -44,12 +42,8 @@ def handle_request_proxy(request):
                         p['user'], p['password'], p['host'], p['port']))
                 if not proxies:
                     raise ValueError('proxy api return empty value')
-            except JSONDecodeError:
-                logger.error( '[{}]: json.decoder.JSONDecodeError: {}'.format(request.spider_id, PROXY_POOL_API))
-                retry_count += 1
-                time.sleep(2)
-            except:
-                logger.error('[{}]: {}'.format(request.spider_id, traceback.format_exc()))
+            except Exception as e:
+                logger.error('[{}]: {}'.format(request.spider_id, e))
                 retry_count += 1
                 time.sleep(2)
             else:
