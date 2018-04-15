@@ -22,5 +22,5 @@ class BossSpider(BaseSpider):
             self.logger.info('[SUCCESS] {}'.format(response.request.url))
             yield response
 
-engine = EngineCore(spider=BossSpider()).set_pipeline(SaveRespPipeline())
-engine.start()
+# engine = EngineCore(spider=BossSpider()).set_pipeline(SaveRespPipeline())
+# engine.start()
