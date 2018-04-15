@@ -1,42 +1,21 @@
+"""
+    queue.py
+    ~~~~~~~
+    the core of scheduler module
+    :author: Max
+    :copyright: (c) 2018
+    :date created: 2018-04-15
+    :python version: 3.6
+"""
 
-import redis
 import pickle
 
-from drogon.settings.default_settings import REDIS_HOST, REDIS_PORT
-from drogon.system.scheduler.bloom_filter import BloomFilter
+from drogon.system.scheduler import BaseScheduler, BaseRedis
 from drogon.system.utils.http import request_to_dict, request_from_dict
+from drogon.system.utils import to_unicode
 
-class Base(object):
-    def __init__(self, spider):
-        self.task_id = spider.spider_id
-        self.spider = spider
-        self._filter = BloomFilter(key=self.task_id)
-        self._server = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
 
-    def get_pipeline(self):
-        return self._server.pipeline()
-
-    def push(self, obj):
-        raise NotImplementedError
-
-    def pop(self):
-        raise NotImplementedError
-
-    def clear_queue(self):
-        self._server.delete(self.task_id)
-
-    def clear_filter(self):
-        keys = self._server.keys(self.task_id + '*')
-        for key in keys:
-            if key != self.task_id:
-                self._server.delete(key)
-
-    def clear(self):
-        keys = self._server.keys(self.task_id + '*')
-        for key in keys:
-            self._server.delete(key)
-
-class PriorityQueue(Base):
+class PriorityRequestQueue(BaseScheduler):
     def push_pipe(self, request, pipe):
         score = -request.priority
         data = pickle.dumps(request_to_dict(request, self.spider), protocol=-1)
@@ -68,7 +47,7 @@ class PriorityQueue(Base):
     def __len__(self):
         return self._server.zcard(self.task_id)
 
-class FIFOQueue(Base):
+class FIFORequestQueue(BaseScheduler):
     def push(self, obj):
         self._server.execute_command('lpush', self.task_id, obj)
 
@@ -83,3 +62,73 @@ class FIFOQueue(Base):
             return request_from_dict(cPickle.loads(results[0]), self.processor)
         else:
             return None
+
+class ProxyQueue(BaseRedis):
+    def __init__(self):
+        super(ProxyQueue, self).__init__(db=0)
+        self.key = 'PROXIES'
+
+    def batch_push(self, proxies):
+        self._server.sadd(self.key, *proxies)
+
+    def pop(self):
+        return self._server.spop(self.key)
+
+    def is_empty(self):
+        return len(self) == 0
+
+    @staticmethod
+    def clean():
+        BaseRedis.delete('PROXIES')
+
+    def __len__(self):
+        return self._server.scard(self.key)
+
+class SpiderStats(object):
+    @staticmethod
+    def set_started_stats(spider_id):
+        key = '{}_STATS'.format(spider_id)
+        BaseRedis.set(key, 'started')
+
+    @staticmethod
+    def set_stop_stats(spider_id):
+        key = '{}_STATS'.format(spider_id)
+        BaseRedis.set(key, 'stopped')
+
+    @staticmethod
+    def is_started_stats(spider_id):
+        key = '{}_STATS'.format(spider_id)
+        return BaseRedis.get(key) == 'started'
+
+    @staticmethod
+    def is_stop_stats(spider_id):
+        key = '{}_STATS'.format(spider_id)
+        return BaseRedis.get(key) == 'stopped'
+
+    @staticmethod
+    def clean(spider_id):
+        key = '{}_STATS'.format(spider_id)
+        BaseRedis.delete(key)
+
+class CrawlStatus(object):
+    def __init__(self, spider, db=0):
+        super(CrawlStatus, self).__init__(db)
+        self.task_id = spider.spider_id
+
+    @staticmethod
+    def increase(spider_id):
+        key = '{}_CRAWL_STATUS'.format(spider_id)
+        crawl_count = int((BaseRedis.get(key) or 0)) + 1
+        BaseRedis.set(key, crawl_count)
+        return crawl_count
+
+    @staticmethod
+    def get_status(spider_id):
+        key = '{}_CRAWL_STATUS'.format(spider_id)
+        return BaseRedis.get(key) or 0
+
+    @staticmethod
+    def clean(spider_id):
+        key = '{}_CRAWL_STATUS'.format(spider_id)
+        BaseRedis.delete(key)
+
