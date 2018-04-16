@@ -2,7 +2,7 @@ import os
 
 SPIDER_PATH = os.getcwd()
 BASE_PATH = os.path.dirname(SPIDER_PATH)
-RESULT_PATH = os.path.join(BASE_PATH, os.path.join('output', 'result'))
+RESULT_PATH = os.path.join(BASE_PATH, os.path.join('output', 'sample'))
 SYS_LOG_PATH = os.path.join(BASE_PATH, os.path.join('output', 'sys_log'))
 TASK_LOG_PATH = os.path.join(BASE_PATH, os.path.join('output', 'task_log'))
 START_URLS_PATH = os.path.join(BASE_PATH, 'start_urls')
