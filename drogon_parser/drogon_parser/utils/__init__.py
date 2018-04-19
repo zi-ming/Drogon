@@ -72,7 +72,7 @@ def avg_value(dict_obj):
 def handle_xpath_text(parten, doc=None, content=None, del_empty=False):
     if doc is None and content is None:
         raise ValueError('both doc and content must not be None')
-    if not doc:
+    if doc is None:
         doc = etree.HTML(content)
     txt = u''.join(doc.xpath(parten)).strip()
     txt = strQ2B(txt)
