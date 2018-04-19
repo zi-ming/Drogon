@@ -29,7 +29,7 @@ class Logger(object):
         logger.setLevel(logging.DEBUG)
 
         sh = logging.StreamHandler()
-        sh.setLevel(logging.DEBUG)
+        sh.setLevel(logging.ERROR)
         sh.setFormatter(log_formatter)
         logger.addHandler(sh)
 
