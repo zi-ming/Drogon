@@ -9,4 +9,5 @@ SYS_LOG_PATH = os.path.join(OUTPUT_PATH, 'sys_log')
 TASK_LOG_PATH = os.path.join(OUTPUT_PATH, 'task_log')
 DFA_DICT_PATH = os.path.join(BASE_PATH, 'drogon_parser/libs/dict.txt')
 
-GAODE_KEY = '0000'
+CONCURRENT_SIZE = 50
+GAODE_KEY = ''
