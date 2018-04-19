@@ -35,7 +35,7 @@ class BaseParser(object):
     def on_start(self):
         path = os.path.join(SAMPLE_PATH, self.parser_name)
         if not os.path.exists(path):
-            raise 'sample path not exists: {}'.format(path)
+            raise IOError('sample path not exists: {}'.format(path))
         for _, _, files in os.walk(path):
             files = sorted(files)
             for f in files:
