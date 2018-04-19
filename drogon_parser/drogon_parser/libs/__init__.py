@@ -2,10 +2,13 @@
 import time
 import re
 import requests
+import traceback
 
 from drogon_parser.utils import strQ2B
 from drogon_parser.libs.dfa import export_words
 from drogon_parser.settings import GAODE_KEY
+from drogon_parser.logger import sys_logger as logger
+
 
 def parse_recruiting_salary(value):
     """
@@ -268,13 +271,19 @@ def get_district_from_gaode(address):
             'batch': 'true'
         }
     )
-    resp = requests.get(**args)
-    resp = resp.json()
     province, city, district = '', '', ''
-    if resp.get('count', 0) not in [0, "0"]:
-        district = resp['geocodes'][0]['district']
-        province = resp['geocodes'][0]['province']
-        city = resp['geocodes'][0]['city']
+    try:
+        if not GAODE_KEY:
+            logger.warning('GAODE_KEY is empty')
+            return province, city, district
+        resp = requests.get(**args)
+        resp = resp.json()
+        if resp.get('count', 0) not in [0, "0"]:
+            district = resp['geocodes'][0]['district']
+            province = resp['geocodes'][0]['province']
+            city = resp['geocodes'][0]['city']
+    except:
+        logger.error(traceback.format_exc())
     return province, city, district
 
 def recognize_functions(txt):
