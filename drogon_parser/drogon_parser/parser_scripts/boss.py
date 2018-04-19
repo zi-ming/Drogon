@@ -20,6 +20,7 @@ class Parser(BaseParser):
         need_dimensions = ['entName', 'jobName', 'workingSalary', 'recruitingEducation',
                            'workingSeniority', 'recruitingAgeRequest', 'languageAbility',
                            'benefitList', 'industryList', 'recruitingMemberCount', 'workingProvince', 'functions']
+        page_info, content = content.split('\n', 1)
         for feedback in self.parse_basic(content):
             if isinstance(feedback, dict):
                 # 进一步清洗数据
@@ -29,7 +30,7 @@ class Parser(BaseParser):
                 if flag:
                     yield result
                 else:
-                    pass
+                    self.logger.warning('[Filter] page_info:{}; lack_field:{}'.format(page_info, lack_field))
 
     def parse_basic(self, content):
         """
@@ -38,14 +39,13 @@ class Parser(BaseParser):
         :return:
         """
         result = dict()
-        page_info, content = content.split('\n', 1)
         doc = etree.HTML(content)
         if not doc.xpath('//div[@class="about-position"]') or u'该职位已结束' in content:
             pass
             # self.logger.info('该职位已过期')
             return
         try:
-            name = self.handle_xpath_text(doc, '//div[@class="title-info"]/h3//text()').split(u'|')
+            name = handle_xpath_text('//div[@class="title-info"]/h3//text()', doc).split(u'|')
             assert len(name) in [1, 2]
             if len(name) == 1 and len(name[0]):
                 name = name[0]
@@ -56,39 +56,41 @@ class Parser(BaseParser):
             name = name.replace(u'看看其他高薪职位>>', u'').strip()
             assert name
         except:
-            # self.logger.error(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
             return
         # 企业名， 职位名，工资待遇
         result[u'entName'] = name
-        result[u'jobName'] = self.handle_xpath_text(doc, '//div[@class="title-info"]/h1//text()')
-        result[u'workingSalary'] = self.handle_xpath_text(doc, '//p[@class="job-item-title"]/text()')
+        result[u'jobName'] = handle_xpath_text('//div[@class="title-info"]/h1//text()', doc)
+        result[u'workingSalary'] = handle_xpath_text('//p[@class="job-item-title"]/text()', doc)
         if u'面议' in result[u'workingSalary']:
             result[u'workingSalary'] = 0
 
         # 招聘学历要求、工作经验、岗位年龄要求
-        result[u'recruitingEducation'] = self.handle_xpath_text(doc,
-                                                                '//div[@class="job-qualifications"]/span[1]/text()')
-        result[u'workingSeniority'] = self.handle_xpath_text(doc, '//div[@class="job-qualifications"]/span[2]/text()')
-        result[u'recruitingAgeRequest'] = self.handle_xpath_text(doc,
-                                                                 '//div[@class="job-qualifications"]/span[4]/text()')
+        result[u'recruitingEducation'] = handle_xpath_text('//div[@class="job-qualifications"]/span[1]/text()',
+                                                           doc)
+        result[u'workingSeniority'] = handle_xpath_text('//div[@class="job-qualifications"]/span[2]/text()',
+                                                        doc)
+        result[u'recruitingAgeRequest'] = handle_xpath_text('//div[@class="job-qualifications"]/span[4]/text()',
+                                                            doc)
         # 语言能力要求，年龄要求
         if len(doc.xpath('//div[@class="job-qualifications"]/span')) == 4:
-            txt = self.handle_xpath_text(doc, '//div[@class="job-qualifications"]/span[3]/text()', del_empty=True)
+            txt = handle_xpath_text('//div[@class="job-qualifications"]/span[3]/text()',
+                                    doc=doc, del_empty=True)
             result[u'languageAbility'] = txt.split(u'+')
 
         if u'不限' in result[u'recruitingAgeRequest']:
             result[u'recruitingAgeRequest'] = {'min': -1}
         # 岗位福利列表
         for span in doc.xpath('//div[@class="tag-list"]/span'):
-            text = self.handle_xpath_text(span, './text()')
+            text = handle_xpath_text('./text()', doc=span)
             if text:
                 result.setdefault(u'benefitList', [])
                 result[u'benefitList'].append(text)
         # 职位描述、招聘企业简介
-        desc = self.handle_xpath_text(doc, '//div[contains(@class, "job-description")]//text()')
+        desc = handle_xpath_text('//div[contains(@class, "job-description")]//text()', doc)
         if u'职位描述' in desc:
-            result[u'recruitingDesc'] = self.handle_xpath_text(doc, '//div[@class="content content-word"]//text()',
-                                                               del_empty=True)
+            result[u'recruitingDesc'] = handle_xpath_text('//div[@class="content content-word"]//text()',
+                                                          doc=doc, del_empty=True)
         res = self.filter_ent_info(content)
         result.update(res)
 
@@ -144,7 +146,7 @@ class Parser(BaseParser):
         }
         infos = doc.xpath('//ul[@class="new-compintro"]//li')
         for info in infos:
-            txt = self.handle_xpath_text(info, './/text()')
+            txt = handle_xpath_text('.//text()', info)
             if u':' not in txt:
                 continue
             values = txt.split(u':')
@@ -158,7 +160,7 @@ class Parser(BaseParser):
                 result[u'workingAddress'] = v
         detail_infos = doc.xpath('//ul[@class="new-compdetail hide"]/li')
         for info in detail_infos:
-            txt = self.handle_xpath_text(info, './text()')
+            txt = handle_xpath_text('./text()', info)
             if u':' not in txt:
                 continue
             try:
@@ -171,13 +173,13 @@ class Parser(BaseParser):
                 result[u'regCapital'] = re.sub(u'[\(\)]', u'', v)
             # if any(map(lambda x: x in k, [u'期限', ])):
             #     result[u'businessTerm'] = v
-        position = self.handle_xpath_text(doc, '//input[@id="location"]/@value').split(u',')
+        position = handle_xpath_text('//input[@id="location"]/@value', doc).split(u',')
         if all(map(lambda x: re.match('[\d\.]+', x), position)):
             result[u'workLocation'] = {
                 u'lat': position[1],
                 u'lng': position[0]
             }
         if not result.get(u'workingAddress', u''):
-            txt = self.handle_xpath_text(doc, '//p[@class="basic-infor"]/span/a/text()')
+            txt = handle_xpath_text('//p[@class="basic-infor"]/span/a/text()', doc)
             result[u'workingAddress'] = re.sub(u'-', u'', txt)
         return result
