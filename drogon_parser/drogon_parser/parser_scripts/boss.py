@@ -19,7 +19,8 @@ class Parser(BaseParser):
         # 必要字段
         need_dimensions = ['entName', 'jobName', 'workingSalary', 'recruitingEducation',
                            'workingSeniority', 'recruitingAgeRequest', 'languageAbility',
-                           'benefitList', 'industryList', 'recruitingMemberCount', 'workingProvince', 'functions']
+                           'benefitList', 'industryList', 'recruitingMemberCount', 'workingProvince',
+                           'workingCity', 'functions']
         page_info, content = content.split('\n', 1)
         for feedback in self.parse_basic(content):
             if isinstance(feedback, dict):
@@ -56,7 +57,7 @@ class Parser(BaseParser):
             name = name.replace(u'看看其他高薪职位>>', u'').strip()
             assert name
         except:
-            self.logger.error(traceback.format_exc())
+            # self.logger.error(traceback.format_exc())
             return
         # 企业名， 职位名，工资待遇
         result[u'entName'] = name
@@ -124,7 +125,7 @@ class Parser(BaseParser):
 
         if u'regCapital' in result:
             capital = parse_reg_capital(result[u'regCapital'])
-            if capital['coinType'] == '人民币':
+            if capital and capital['coinType'] == '人民币':
                 result[u'regCapital'] = capital['value']
             else:
                 result.pop(u'regCapital')
