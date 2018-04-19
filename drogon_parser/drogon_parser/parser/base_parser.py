@@ -9,49 +9,92 @@
 """
 
 import os
+import time
 import json
+import threading
+import asyncio
 import types
+import traceback
 
-from drogon_parser.settings import SAMPLE_PATH, RESULT_PATH
+from queue import Queue
+from queue import Empty
+
+from drogon_parser.settings import SAMPLE_PATH, RESULT_PATH, CONCURRENT_SIZE
 from drogon_parser.logger import Logger
 from drogon_parser.utils import *
 
 class BaseParser(object):
     parser_name = None
 
+
     def __init__(self):
         self.logger = Logger(self.parser_name).logger
         path = os.path.join(RESULT_PATH, self.parser_name)
         if not os.path.exists(path):
             os.mkdir(path)
-        self.path = os.path.join(path, self.parser_name)
-        if os.path.exists(self.path):
-            os.remove(self.path)
+        self.result_path = os.path.join(path, self.parser_name)
+        if os.path.exists(self.result_path):
+            os.remove(self.result_path)
+        self.sample_path = os.path.join(SAMPLE_PATH, self.parser_name)
+        if not os.path.exists(self.sample_path):
+            raise IOError('sample path not exists: {}'.format(self.sample_path))
+        self.file_path_queue = Queue(maxsize=1000)
+        self.result_queue = Queue()
+        self.status = 'started'
 
+    def read_files(self):
+        for _, _, files in os.walk(self.sample_path):
+            for f in files:
+                self.file_path_queue.put(os.path.join(self.sample_path, f))
+
+    def write_result(self):
+        retry_count = 0
+        with open(self.result_path, 'a', encoding='utf-8') as f:
+            while True:
+                try:
+                    content = self.result_queue.get(False)
+                    f.write('{}\n'.format(content))
+                    retry_count = 0
+                except:
+                    if self.file_path_queue.empty():
+                        retry_count += 1
+                        time.sleep(1)
+                    if retry_count == 5:
+                        self.status = 'stopped'
+                        break
 
     def parse(self, content):
         pass
 
     def on_start(self):
-        path = os.path.join(SAMPLE_PATH, self.parser_name)
-        if not os.path.exists(path):
-            raise IOError('sample path not exists: {}'.format(path))
-        for _, _, files in os.walk(path):
-            files = sorted(files)
-            for f in files:
-                content = open(os.path.join(path, f), encoding='utf-8').read()
+        read_thread = threading.Thread(target=self.read_files)
+        write_thread = threading.Thread(target=self.write_result)
+        read_thread.start()
+        write_thread.start()
+
+        loop = asyncio.get_event_loop()
+        tasks = []
+        for i in range(CONCURRENT_SIZE):
+            tasks.append(asyncio.ensure_future(self.on_parser()))
+        loop.run_until_complete(asyncio.wait(tasks))
+        loop.close()
+
+        read_thread.join()
+        write_thread.join()
+
+    async def on_parser(self):
+        while self.status == 'started':
+            try:
+                file_path = self.file_path_queue.get(False)
+                content = open(file_path, encoding='utf-8').read()
                 callback = self.parse(content)
                 if isinstance(callback, types.GeneratorType):
                     for ret in callback:
                         if isinstance(ret, dict):
-                            self.local_save(ret)
+                            self.result_queue.put(json.dumps(ret, ensure_ascii=False))
                 elif isinstance(callback, dict):
-                    self.local_save(callback)
-
-    def local_save(self, data):
-        if not isinstance(data, dict):
-            raise TypeError
-        data = json.dumps(data, ensure_ascii=False)
-        with open(self.path, 'a', encoding='utf-8') as f:
-            f.write('{}\n'.format(data))
-
+                    self.result_queue.put(json.dumps(callback, ensure_ascii=False))
+            except Empty:
+                pass
+            except:
+                print(traceback.format_exc())
