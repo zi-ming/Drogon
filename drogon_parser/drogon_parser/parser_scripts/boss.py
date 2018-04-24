@@ -19,8 +19,8 @@ class Parser(BaseParser):
         # 必要字段
         need_dimensions = ['entName', 'jobName', 'workingSalary', 'recruitingEducation',
                            'workingSeniority', 'recruitingAgeRequest', 'languageAbility',
-                           'benefitList', 'industryList', 'recruitingMemberCount', 'workingProvince',
-                           'workingCity', 'functions']
+                           'benefitList', 'industryList', 'recruitingMemberCount',
+                           'functions', 'workingAddress']
         page_info, content = content.split('\n', 1)
         for feedback in self.parse_basic(content):
             if isinstance(feedback, dict):
@@ -29,6 +29,8 @@ class Parser(BaseParser):
                 # 检查必要维度
                 flag, lack_field = check_need_dimensions(result, need_dimensions)
                 if flag:
+                    # print('[SUCCESS] {}'.format(page_info))
+                    self.logger.info('[SUCCESS] {}'.format(page_info))
                     yield result
                 else:
                     self.logger.warning('[Filter] page_info:{}; lack_field:{}'.format(page_info, lack_field))
@@ -114,10 +116,10 @@ class Parser(BaseParser):
             result['recruitingMemberCount'] = parse_member_count(result['recruitingMemberCount'])
             result['recruitingMemberCount'] = avg_value(result[u'recruitingMemberCount'])
 
-        if u'workingAddress' in result:
-            result[u'workingProvince'], result[u'workingCity'], result[u'workingDistrict'] = \
-                get_district_from_gaode(result[u'workingAddress'])
-            result.pop(u'workingAddress')
+        # if u'workingAddress' in result:
+        #     result[u'workingProvince'], result[u'workingCity'], result[u'workingDistrict'] = \
+        #         get_district_from_gaode(result[u'workingAddress'])
+        #     result.pop(u'workingAddress')
 
         if u'recruitingDesc' in result:
             result['functions'] = recognize_functions(result[u'recruitingDesc'])
