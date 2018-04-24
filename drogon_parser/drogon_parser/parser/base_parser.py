@@ -38,7 +38,7 @@ class BaseParser(object):
         self.sample_path = os.path.join(SAMPLE_PATH, self.parser_name)
         if not os.path.exists(self.sample_path):
             raise IOError('sample path not exists: {}'.format(self.sample_path))
-        self.file_path_queue = Queue(maxsize=1000)
+        self.file_path_queue = Queue(maxsize=2000)
         self.result_queue = Queue()
         self.status = 'started'
 
@@ -95,6 +95,7 @@ class BaseParser(object):
                 elif isinstance(callback, dict):
                     self.result_queue.put(json.dumps(callback, ensure_ascii=False))
             except Empty:
-                pass
+                time.sleep(0.1)
             except:
                 print(traceback.format_exc())
+                pass
