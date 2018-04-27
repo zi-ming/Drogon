@@ -30,10 +30,10 @@ class Parser(BaseParser):
                 flag, lack_field = check_need_dimensions(result, need_dimensions)
                 if flag:
                     # print('[SUCCESS] {}'.format(page_info))
-                    self.logger.info('[SUCCESS] {}'.format(page_info))
+                    # print('[SUCCESS] {}'.format(page_info))
                     yield result
                 else:
-                    self.logger.warning('[Filter] page_info:{}; lack_field:{}'.format(page_info, lack_field))
+                    print('[Filter] page_info:{}; lack_field:{}'.format(page_info, lack_field))
 
     def parse_basic(self, content):
         """
@@ -45,7 +45,6 @@ class Parser(BaseParser):
         doc = etree.HTML(content)
         if not doc.xpath('//div[@class="about-position"]') or u'该职位已结束' in content:
             pass
-            # self.logger.info('该职位已过期')
             return
         try:
             name = handle_xpath_text('//div[@class="title-info"]/h3//text()', doc).split(u'|')
@@ -59,7 +58,6 @@ class Parser(BaseParser):
             name = name.replace(u'看看其他高薪职位>>', u'').strip()
             assert name
         except:
-            # self.logger.error(traceback.format_exc())
             return
         # 企业名， 职位名，工资待遇
         result[u'entName'] = name
