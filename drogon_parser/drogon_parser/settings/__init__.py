@@ -11,3 +11,7 @@ DFA_DICT_PATH = os.path.join(BASE_PATH, 'drogon_parser/libs/dict.txt')
 
 CONCURRENT_SIZE = 50
 GAODE_KEY = ''
+
+MAX_IDLE_TIMES = 10
+PROCESS_COUNT = 4
+ASYN_COUNT = 2
