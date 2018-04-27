@@ -1,3 +1,12 @@
+# encoding: utf-8
+"""
+    猎聘解析
+    ~~~~
+    :author: Li Ziming
+    :copyright: (c) 2018, Tungee
+    :date created: 2018-04-27
+    :python version: 3.6
+"""
 
 import re
 import traceback
@@ -11,7 +20,7 @@ from drogon_parser.libs import parse_recruiting_salary, parse_working_seniority,
     recognize_functions, parse_reg_capital, parse_recruiting_education
 
 class Parser(BaseParser):
-    parser_name = 'boss'
+    parser_name = 'lieping'
 
     def parse(self, content):
         if not content:
@@ -184,3 +193,6 @@ class Parser(BaseParser):
             txt = handle_xpath_text('//p[@class="basic-infor"]/span/a/text()', doc)
             result[u'workingAddress'] = re.sub(u'-', u'', txt)
         return result
+
+
+
