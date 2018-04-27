@@ -19,7 +19,8 @@ import traceback
 from queue import Queue
 from queue import Empty
 
-from multiprocessing import Pool, Manager
+from multiprocessing import Process, Manager, Value, Array
+from ctypes import c_char_p
 
 from drogon_parser.settings import SAMPLE_PATH
 from drogon_parser.settings import RESULT_PATH
@@ -31,11 +32,14 @@ from drogon_parser.settings import MAX_IDLE_TIMES
 from drogon_parser.logger import Logger
 from drogon_parser.utils import *
 
+class ParserStatus(object):
+    stop_status = 0
+    start_status = 1
+
 class BaseParser(object):
     parser_name = ''
 
     def __init__(self):
-        # self.logger = Logger(self.parser_name).logger
         path = os.path.join(RESULT_PATH, self.parser_name)
         if not os.path.exists(path):
             os.mkdir(path)
@@ -45,56 +49,32 @@ class BaseParser(object):
         self.sample_path = os.path.join(SAMPLE_PATH, self.parser_name)
         if not os.path.exists(self.sample_path):
             raise IOError('sample path not exists: {}'.format(self.sample_path))
-        self.status = 'started'
-
-    # @property
-    # def parse_name(self):
-    #     return self._parse_name
-    #
-    # @parse_name.setter
-    # def parse_name(self, value):
-    #     print('ok....')
-    #     self._parse_name = value
-
 
     def read_files(self, sample_path_queue):
-        print('ok')
         for _, _, files in os.walk(self.sample_path):
             for f in files:
                 sample_path_queue.put(os.path.join(self.sample_path, f))
 
-    def func(self):
-        print('ok')
-
-    def on_start2(self):
-        manager = Manager()
-        pool = Pool(processes=4)
-        sample_path_queue = manager.Queue()
-        pool.apply_async(func=self.func)
-        pool.close()
-        pool.join()
-
     def on_start(self):
-        # self.logger = Logger(self.parser_name).logger
         print('parser started')
         manager = Manager()
-        pool = Pool(processes=PROCESS_COUNT + 2)
+        process_list = []
         sample_path_queue = manager.Queue()
         result_queue = manager.Queue()
-        pool.apply_async(func=self.func)
-        # for i in range(PROCESS_COUNT):
-        #     pool.apply_async(func=self.parser_factory, args=(sample_path_queue, result_queue))
-        # pool.apply_async(func=self.write_result, args=(sample_path_queue, result_queue))
-        pool.close()
+        status = Array('i', [ParserStatus.start_status,])
+        process_list.append(Process(target=self.read_files, args=(sample_path_queue,)))
+        process_list.append(Process(target=self.write_result, args=(status, sample_path_queue, result_queue)))
+        for i in range(PROCESS_COUNT):
+            process_list.append(Process(target=self.parser_factory, args=(status, sample_path_queue, result_queue)))
 
-        # while True:
-        #     print(sample_path_queue.qsize())
-        #     time.sleep(2)
+        for p in process_list:
+            p.start()
+        for p in process_list:
+            p.join()
 
-        pool.join()
         print('Parser finished.')
 
-    def write_result(self, sample_path_queue, result_queue):
+    def write_result(self, status, sample_path_queue, result_queue):
         retry_count = 0
         with open(self.result_path, 'a', encoding='utf-8') as f:
             while True:
@@ -107,21 +87,21 @@ class BaseParser(object):
                     if sample_path_queue.empty() and result_queue.empty():
                         retry_count += 1
                     if retry_count == MAX_IDLE_TIMES:
-                        self.status = 'stopped'
+                        status[0] = ParserStatus.stop_status
                         break
                 except:
-                    self.logger.error('[EXCEPTION] {}'.format(traceback.format_exc()))
+                    print(traceback.format_exc())
 
-    def parser_factory(self, sample_path_queue, result_queue):
+    def parser_factory(self, status, sample_path_queue, result_queue):
         loop = asyncio.get_event_loop()
         tasks = []
         for i in range(ASYN_COUNT):
-            tasks.append(asyncio.ensure_future(self.on_parser(sample_path_queue, result_queue)))
+            tasks.append(asyncio.ensure_future(self.on_parser(status, sample_path_queue, result_queue)))
         loop.run_until_complete(asyncio.wait(tasks))
         loop.close()
 
-    async def on_parser(self, sample_path_queue, result_queue):
-        while self.status == 'started':
+    async def on_parser(self, status, sample_path_queue, result_queue):
+        while status[0]== ParserStatus.start_status:
             try:
                 file_path = sample_path_queue.get(False)
                 content = open(file_path, encoding='utf-8').read()
@@ -131,27 +111,12 @@ class BaseParser(object):
                         if isinstance(ret, dict):
                             result_queue.put(json.dumps(ret, ensure_ascii=False))
                 elif isinstance(callback, dict):
+                    print(callback)
                     result_queue.put(json.dumps(callback, ensure_ascii=False))
             except Empty:
-                time.sleep(0.1)
+                time.sleep(1)
             except:
-                self.logger.error('[EXCEPTION] {}'.format(traceback.format_exc()))
+                print(traceback.format_exc())
 
     def parse(self, content):
         pass
-
-
-class BaseParser2(object):
-    def func(self, x=None):
-        print('ok')
-
-    def on_start(self):
-        manager = Manager()
-        pool = Pool(processes=4)
-        sample_path_queue = manager.Queue()
-        pool.apply_async(func=self.func)
-        pool.close()
-        pool.join()
-
-class Boss(BaseParser):
-    parser_name = 'boss'
