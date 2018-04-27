@@ -7,6 +7,6 @@ DATA_PATH = os.path.abspath(r'..\output\result\boss')
 RESULT_PATH = os.path.abspath(r'..\output\result\full_boss')
 CACHE_PATH = os.path.abspath(r'..\output\result')
 
-PROCESS_COUNT = 4
-ASYN_COUNT = 5
+PROCESS_COUNT = 2
+ASYN_COUNT = 2
 MAX_IDLE_TIMES = 100

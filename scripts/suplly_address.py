@@ -7,7 +7,8 @@ import traceback
 import requests
 import multiprocessing
 
-from queue import Queue
+from multiprocessing import Manager, Queue
+# from queue import Queue
 
 import grequests
 from logger import Logger
@@ -56,14 +57,12 @@ def get_district_from_gaode(batch_items):
     except:
         logger.error(traceback.format_exc())
 
-
-def apply(task_flag, num):
+def apply(task_queue, task_flag, num):
     def write_cache(f, batch_items):
         if batch_items:
             get_district_from_gaode(batch_items)
             for item in batch_items:
-                print(item)
-                f.write('{}\n'.format(json.dumps(item, encoding='utf-8', ensure_ascii=False)))
+                f.write('{}\n'.format(json.dumps(item, ensure_ascii=False)))
         return []
     idle_count = 0
     process_name = 'process_{}'.format(num)
@@ -76,11 +75,11 @@ def apply(task_flag, num):
                 data = json.loads(line)
                 if 'province' in data or 'district' in data or 'city' in data:
                     continue
-            except:
+            except Exception as e:
                 time.sleep(0.5)
                 idle_count += 1
                 if idle_count == MAX_IDLE_TIMES:
-                    batch_items = write_cache(f, batch_items)
+                    write_cache(f, batch_items)
                     logger.info('{} finish.'.format(process_name))
                     break
             else:
@@ -88,9 +87,8 @@ def apply(task_flag, num):
                 batch_items.append(data)
                 if len(batch_items) == BATCH_SIZE:
                     batch_items = write_cache(f, batch_items)
-                    print('ok')
 
-def read_data():
+def read_data(task_queue):
     path = os.path.join(DATA_PATH, 'boss_tmp')
     with open(path, encoding='utf-8') as f:
         for line in f:
@@ -116,27 +114,28 @@ def clean(task_flag):
             if f.startswith(task_flag):
                 os.remove(os.path.join(CACHE_PATH, f))
 
-def func(task_flag=None, i=None):
-    path = os.path.join(DATA_PATH, 'boss_tmp')
-    batch_items = []
-    with open(path, encoding='utf-8') as f:
-        for line in f:
-            batch_items.append(json.loads(line))
-            if len(batch_items) == 4:
-                break
-    get_district_from_gaode(batch_items)
-
+def func(task_queue, task_flag=None, num=None):
+    try:
+        print('{}: {}'.format(num, task_queue.get(False)))
+    except:
+        pass
 
 def main():
     # func()
     logger.info('started')
-    pool = multiprocessing.Pool()
-    pool.apply_async(read_data)
+    manager = Manager()
+    task_queue = manager.Queue()
+    # task_queue = Queue()
+    pool = multiprocessing.Pool(processes=5)
+    read_data(task_queue)
+    print(task_queue.qsize())
+    # pool.apply_async(read_data)
     task_flag = str(int(time.time()*1000))
     for i in range(PROCESS_COUNT):
-        pool.apply_async(func=apply, args=(task_flag, i))
+        pool.apply_async(func=apply, args=(task_queue, task_flag, i))
     pool.close()
     pool.join()
+    merge_cache(task_flag)
     # clean(task_flag)
     logger.info('finished')
 
