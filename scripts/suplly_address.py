@@ -6,8 +6,9 @@ import json
 import traceback
 import requests
 import multiprocessing
+import random
 
-from multiprocessing import Manager, Queue
+from multiprocessing import Manager, Queue, Array
 # from queue import Queue
 
 import grequests
@@ -16,10 +17,12 @@ from settings import *
 
 logger = Logger('supply_address').logger
 BATCH_SIZE = 15
-GAODE_KEY= ''
 
 # task_queue = Queue()
 
+gaode_keys = [
+    
+]
 
 def get_district_from_gaode(batch_items):
     def exception_handler(request, exception):
@@ -29,14 +32,12 @@ def get_district_from_gaode(batch_items):
             logger.warning('[ERROR] {}'.format(traceback.format_exc()))
     batch_requests = []
     try:
-        if not GAODE_KEY:
-            logger.warning('GAODE_KEY is empty')
-            exit(0)
         for item in batch_items:
+            gaode_key = random.choice(gaode_keys)
             args = dict(
                 url='http://restapi.amap.com/v3/geocode/geo',
                 params={
-                    'key': GAODE_KEY,
+                    'key': gaode_key,
                     'address': item['workingAddress'],
                     'batch': 'true'
                 }
@@ -89,7 +90,7 @@ def apply(task_queue, task_flag, num):
                     batch_items = write_cache(f, batch_items)
 
 def read_data(task_queue):
-    path = os.path.join(DATA_PATH, 'boss_tmp')
+    path = os.path.join(DATA_PATH, 'boss')
     with open(path, encoding='utf-8') as f:
         for line in f:
             task_queue.put(line)
@@ -114,29 +115,20 @@ def clean(task_flag):
             if f.startswith(task_flag):
                 os.remove(os.path.join(CACHE_PATH, f))
 
-def func(task_queue, task_flag=None, num=None):
-    try:
-        print('{}: {}'.format(num, task_queue.get(False)))
-    except:
-        pass
-
 def main():
     # func()
     logger.info('started')
     manager = Manager()
     task_queue = manager.Queue()
-    # task_queue = Queue()
     pool = multiprocessing.Pool(processes=5)
-    read_data(task_queue)
-    print(task_queue.qsize())
-    # pool.apply_async(read_data)
+    pool.apply_async(func=read_data, args=(task_queue,))
     task_flag = str(int(time.time()*1000))
     for i in range(PROCESS_COUNT):
         pool.apply_async(func=apply, args=(task_queue, task_flag, i))
     pool.close()
     pool.join()
     merge_cache(task_flag)
-    # clean(task_flag)
+    clean(task_flag)
     logger.info('finished')
 
 
