@@ -20,13 +20,13 @@ class Logger(object):
         if not os.path.exists(log_file_path):
             os.makedirs(log_file_path)
         if not logging_format:
-            logging_format = "%(asctime)s - %(name)s - %(levelname)s:%(message)s"
+            logging_format = "%(asctime)s-%(name)s-%(levelname)s:%(message)s"
         log_formatter = logging.Formatter(logging_format)
         logger = logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
 
         sh = logging.StreamHandler()
-        sh.setLevel(logging.DEBUG)
+        sh.setLevel(logging.INFO)
         sh.setFormatter(log_formatter)
         logger.addHandler(sh)
 
@@ -41,7 +41,7 @@ class Logger(object):
                     path, maxBytes=max_bytes, backupCount=backup_count)
             else:
                 fh = logging.FileHandler(path)
-            fh.setLevel(logging.INFO)
+            fh.setLevel(logging.DEBUG)
             fh.setFormatter(log_formatter)
             logger.addHandler(fh)
         self.logger = logger

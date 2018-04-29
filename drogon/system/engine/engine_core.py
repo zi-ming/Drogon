@@ -31,7 +31,7 @@ from drogon.system.scheduler.queue import CrawlStatus
 from drogon.system.scheduler.queue import ProxyQueue
 
 from drogon.system.pipeline.base_pipeline import BasePipeline
-from drogon.system.pipeline.save_resp_pipeline import SaveRespPipeline
+from drogon.system.pipeline.save_result_pipeline import SaveResultPipeline as Pipeline
 
 class EngineCore(object):
     def __init__(self, spider=None, downloader=None, pipeline=None,
@@ -41,7 +41,7 @@ class EngineCore(object):
         self._batch_size = batch_size - 1 or REQUEST_BATCH_SIZE
         self._pipelines = dict()
         if not pipeline:
-            self.set_pipeline(SaveRespPipeline())
+            self.set_pipeline(Pipeline())
         elif isinstance(pipeline, dict):
             self._pipelines = pipeline
         elif isinstance(pipeline, BasePipeline):
@@ -77,6 +77,7 @@ class EngineCore(object):
 
     def start(self):
         try:
+            self.clean()
             logger.info("[{}] STARTED".format(self._spider_id))
             SpiderStats.set_started_stats(self._spider_id)
             self._request_queue = self._scheduler(self._spider)
@@ -85,7 +86,7 @@ class EngineCore(object):
                 if not request or not isinstance(request, Request):
                     continue
                 self._request_queue.push(request)
-                logger.info('[{}] start request: {}'.format(self._spider_id, request))
+                logger.debug('[{}] start request: {}'.format(self._spider_id, request))
                 if not SpiderStats.is_started_stats(self._spider_id):
                     break
             idle_count = 0
@@ -95,10 +96,10 @@ class EngineCore(object):
                     idle_count = 0
                 else:
                     idle_count += 1
-                    if idle_count > (SPIDER_STOP_TIME*300):
-                        break
-                    elif idle_count % (IDLE_TIME*300) == 0:
-                        logger.debug('[{}] crawl page count: {}'.format(
+                    # if idle_count > (SPIDER_STOP_TIME*300):
+                    #     break
+                    if idle_count % (IDLE_TIME*300) == 0:
+                        logger.info('[{}] crawl page count: {}'.format(
                             self._spider_id, CrawlStatus.get_status(self._spider_id)))
                     time.sleep(0.001)
             SpiderStats.set_stop_stats(self._spider_id)
@@ -106,7 +107,8 @@ class EngineCore(object):
         except:
             logger.error('[{}] EXCEPTION: {}'.format(self._spider_id, traceback.format_exc()))
         finally:
-            self.clean()
+            pass
+            # self.clean()
 
     def _batch_requests(self):
         batch, count = [], 0
@@ -141,14 +143,14 @@ class EngineCore(object):
                 for item in callback:
                     if isinstance(item, Request):
                         self._request_queue.push_pipe(item, scheduler_pipe)
-                        logger.info('[{}] start request: {}'.format(self._spider_id, item))
+                        logger.debug('[{}] start request: {}'.format(self._spider_id, item))
                     else:
                         for pipeline in self._pipelines.values():
                             pipeline.parse(item, self._spider)
                 scheduler_pipe.execute()
             elif isinstance(callback, Request):
                 self._request_queue.push(callback)
-                logger.info('[{}] start request: {}'.format(self._spider_id, callback))
+                logger.debug('[{}] start request: {}'.format(self._spider_id, callback))
             else:
                 for pipeline in self._pipelines.values():
                     pipeline.parse(callback, self._spider)
