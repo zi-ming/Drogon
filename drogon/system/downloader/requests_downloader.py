@@ -24,6 +24,8 @@ from drogon.settings import MAX_REQUEST_RETRY
 from drogon.system.downloader.proxy import handle_request_proxy
 from drogon.system.scheduler.queue import CrawlStatus
 
+requests.packages.urllib3.disable_warnings()
+
 class RequestsDownloader(BaseDownloader):
     def __init__(self):
         self._retry_adapter = HTTPAdapter(max_retries=3)

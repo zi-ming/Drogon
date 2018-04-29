@@ -24,10 +24,10 @@ class BaseSpider(object):
         self.logger = Logger(spider_id).logger
 
     def fetch(self, **kwargs):
-        _spider_settings = deepcopy(kwargs)
-        _spider_settings.update({'spider': self})
-        _spider_settings.update(**kwargs)
-        return Request(**_spider_settings)
+        # _spider_settings = kwargs
+        # _spider_settings.update({'spider': self})
+        # _spider_settings.update(**kwargs)
+        return Request(spider=self, **kwargs)
 
     def on_message(self):
         for line in read_line_from_start_url_files(self.spider_id) or []:

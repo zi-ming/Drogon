@@ -20,7 +20,7 @@ from drogon_parser.libs import parse_recruiting_salary, parse_working_seniority,
     recognize_functions, parse_reg_capital, parse_recruiting_education
 
 class Parser(BaseParser):
-    parser_name = 'lieping'
+    parser_name = 'liepin_detail'
 
     def parse(self, content):
         if not content:

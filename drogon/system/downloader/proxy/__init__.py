@@ -34,7 +34,7 @@ def handle_request_proxy(request):
         while True:
             try:
                 resp = Downloader.get(PROXY_POOL_API)
-                logger.debug(resp.text)
+                logger.info(resp.text)
                 _proxies = json.loads(resp.text)['proxyes']
                 proxies = []
                 for p in _proxies:

@@ -1,22 +1,21 @@
 import os
 
-SPIDER_PATH = os.getcwd()
-BASE_PATH = os.path.dirname(SPIDER_PATH)
+BASE_PATH = os.getcwd()
 RESULT_PATH = os.path.join(BASE_PATH, os.path.join('output', 'sample'))
 SYS_LOG_PATH = os.path.join(BASE_PATH, os.path.join('output', 'sys_log'))
 TASK_LOG_PATH = os.path.join(BASE_PATH, os.path.join('output', 'task_log'))
 START_URLS_PATH = os.path.join(BASE_PATH, 'start_urls')
 
-PROXY_POOL_API = 'http://127.0.0.1:80'
+PROXY_POOL_API = ''
 REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
 DB = 0
 
-REQUEST_TIMEOUT = 60
+REQUEST_TIMEOUT = 30
 MAX_REQUEST_RETRY = 3
 REQUEST_BATCH_SIZE = 10
 SPIDER_STOP_TIME = 1
-IDLE_TIME = 1
+IDLE_TIME = 5
 
 LEGAL_STATUS_CODE = {200,}
 
