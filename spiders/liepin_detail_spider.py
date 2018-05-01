@@ -6,7 +6,7 @@ from drogon.system.spider.base_spider import BaseSpider
 
 class Spider(BaseSpider):
     spider_id = 'liepin_detail'
-    MAX_RETRY_TIMES = 2
+    MAX_RETRY_TIMES = 5
 
     def __init__(self):
         super(Spider, self).__init__(self.spider_id)
@@ -32,9 +32,9 @@ class Spider(BaseSpider):
         yield self.fetch(url=task_data['url'], meta=meta)
 
     def parse(self, response):
-        if not response.response or response.response.status_code!=200:
-            yield self.retry_get(response)
-        else:
+        try:
+            assert response and response.response.status_code < 300
+            assert self.ensure_liepin(response)
             meta = response.request.meta
             page_mark = meta['task_msg']
             result = {
@@ -42,3 +42,9 @@ class Spider(BaseSpider):
             }
             yield result
             self.logger.info('[SUCCESS] {}'.format(response.request.url))
+        except:
+            yield self.retry_get(response)
+
+    def ensure_liepin(self, response):
+        return 'www.liepin.com' in response.response.text
+
