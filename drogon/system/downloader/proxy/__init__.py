@@ -28,7 +28,7 @@ def handle_request_proxy(request):
     meta = request.meta
     set_proxy_confirm = not meta.get('proxies', None) and meta.get('use_proxy', False)
     if not set_proxy_confirm:
-        set_proxy_confirm = meta.get('change_proxy', False)
+        set_proxy_confirm = meta.get('use_proxy', False) and meta.get('change_proxy', False)
     if set_proxy_confirm and proxy_queue.is_empty():
         retry_count = 0
         while True:
