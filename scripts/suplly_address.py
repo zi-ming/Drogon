@@ -20,6 +20,7 @@ logger = Logger('supply_address').logger
 BATCH_SIZE = 15
 
 gaode_keys = [
+    
 ]
 
 def get_district_from_gaode(batch_items):
