@@ -1,7 +1,6 @@
 # encoding: utf-8
 
 import json
-
 from drogon.system.spider.base_spider import BaseSpider
 
 class Spider(BaseSpider):
