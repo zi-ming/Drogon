@@ -27,6 +27,6 @@ def read_line_from_start_url_files(spider_id):
     for _, _, files in os.walk(path):
         files = sorted(files)
         for f in files:
-            with open(os.path.join(path, f)) as f:
+            with open(os.path.join(path, f), encoding='utf-8') as f:
                 for line in f:
                     yield line
