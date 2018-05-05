@@ -13,7 +13,7 @@ from drogon.settings import REQUEST_TIMEOUT
 class Request(object):
     def __init__(self, url, spider=None, spider_id=None, data=None, headers=None,
                  method='GET', cookies=None, meta=None, callback=None, errback=None,
-                 priority=0, allow_redirects=False, timeout=REQUEST_TIMEOUT, duplicate_remove=False):
+                 priority=0, allow_redirects=True, timeout=REQUEST_TIMEOUT, duplicate_remove=False):
         self.url = url
         self.data = data
         self.headers = headers
