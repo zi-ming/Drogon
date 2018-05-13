@@ -114,6 +114,8 @@ class Spider(BaseSpider):
         path = os.path.join(path, 'job_urls.txt')
         with open(path, 'a', encoding='utf-8') as f:
             for url in job_urls:
+                if 'job' not in url:
+                    continue
                 if url.startswith('/'):
                     url = self.base_url + url
                 line = {

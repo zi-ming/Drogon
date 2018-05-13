@@ -89,19 +89,13 @@ class EngineCore(object):
                 logger.debug('[{}] start request: {}'.format(self._spider_id, request))
                 if not SpiderStats.is_started_stats(self._spider_id):
                     break
-            idle_count = 0
             for batch in self._batch_requests():
                 if batch:
                     self._crawl(batch)
-                    idle_count = 0
                 else:
-                    idle_count += 1
-                    # if idle_count > (SPIDER_STOP_TIME*300):
-                    #     break
-                    if idle_count % (IDLE_TIME*300) == 0:
-                        logger.info('[{}] crawl page count: {}'.format(
-                            self._spider_id, CrawlStatus.get_status(self._spider_id)))
-                    time.sleep(0.001)
+                    time.sleep(3)
+                    logger.info('[{}] crawl page count: {}'.format(
+                        self._spider_id, CrawlStatus.get_status(self._spider_id)))
             SpiderStats.set_stop_stats(self._spider_id)
             logger.info('[{}] FINISH'.format(self._spider_id))
         except:
